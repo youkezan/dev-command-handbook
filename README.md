@@ -1,49 +1,44 @@
-# Starlight Starter Kit: Basics
+# 开发者命令手册
 
-[![Built with Starlight](https://astro.badg.es/v2/built-with-starlight/tiny.svg)](https://starlight.astro.build)
+日常开发常用命令速查手册，基于 [Astro Starlight](https://starlight.astro.build/) 构建。
 
+**在线访问：** [https://dev.webyt.com.cn](https://dev.webyt.com.cn)
+
+## 内容范围
+
+- **.NET 命令**：NuGet 打包、推送、源管理等实操命令
+- 后续可继续补充 Git、Docker、数据库等命令页
+
+文档源文件位于 `src/content/docs/`，按目录自动生成侧边栏（如 `dotnet/` →「NET 命令」）。
+
+## 本地开发
+
+```bash
+npm install
+npm run dev
 ```
-npm create astro@latest -- --template starlight
-```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+浏览器打开 `http://localhost:4321`。
 
-## 🚀 Project Structure
+| 命令 | 说明 |
+| :--- | :--- |
+| `npm run dev` | 本地开发服务 |
+| `npm run build` | 构建生产站点到 `./dist/` |
+| `npm run preview` | 预览构建结果 |
 
-Inside of your Astro + Starlight project, you'll see the following folders and files:
+## 目录结构
 
 ```
 .
-├── public/
+├── public/                 # 静态资源
 ├── src/
-│   ├── assets/
+│   ├── assets/             # 图片等资源
 │   ├── content/
-│   │   └── docs/
+│   │   └── docs/           # 文档内容（.md / .mdx）
+│   │       └── dotnet/     # .NET 相关命令
 │   └── content.config.ts
-├── astro.config.mjs
-├── package.json
-└── tsconfig.json
+├── astro.config.mjs        # 站点与侧边栏配置
+└── package.json
 ```
 
-Starlight looks for `.md` or `.mdx` files in the `src/content/docs/` directory. Each file is exposed as a route based on its file name.
-
-Images can be added to `src/assets/` and embedded in Markdown with a relative link.
-
-Static assets, like favicons, can be placed in the `public/` directory.
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Check out [Starlight’s docs](https://starlight.astro.build/), read [the Astro documentation](https://docs.astro.build), or jump into the [Astro Discord server](https://astro.build/chat).
+新增文档：在对应目录下添加 `.md` / `.mdx`，必要时在 `astro.config.mjs` 的 `sidebar` 中挂载目录。
