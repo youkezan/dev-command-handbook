@@ -4,8 +4,8 @@ import { defineConfig } from 'astro/config';
 
 // https://astro.build/config
 export default defineConfig({
-	site: 'https://youkezan.github.io',
-	base: '/dev-command-handbook',
+	site: 'https://dev.webyt.com.cn',
+	
 	integrations: [
 		starlight({
 			title: '开发者命令手册',
