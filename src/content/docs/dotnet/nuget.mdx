@@ -1,0 +1,125 @@
+---
+title: NuGet 命令
+description: 解决方案打包并推送到私有源（tonggao）的常用命令。
+---
+
+在解决方案根目录操作。包输出到 `./nupkgs`，推送到已配置的源 `tonggao`。
+
+## 前置条件
+
+确认源已配置：
+
+```powershell
+dotnet nuget list source
+```
+
+若没有 `tonggao`，先添加（URL / 认证按实际环境修改）：
+
+```powershell
+dotnet nuget add source <源地址> -n tonggao
+# 需要账号时：
+# dotnet nuget add source <源地址> -n tonggao -u <用户名> -p <密码或 PAT> --store-password-in-clear-text
+```
+
+## 1. 打包所有项目
+
+```powershell
+dotnet pack -c Release -o ./nupkgs
+```
+
+说明：
+
+- `-c Release`：Release 配置
+- `-o ./nupkgs`：所有 `.nupkg` 输出到该目录
+- 会打包解决方案中可打包的项目（含 `IsPackable=true` 的类库等）
+
+只打某一个项目：
+
+```powershell
+dotnet pack .\src\MyLib\MyLib.csproj -c Release -o ./nupkgs
+```
+
+指定版本：
+
+```powershell
+dotnet pack -c Release -o ./nupkgs -p:PackageVersion=1.2.3
+```
+
+已有构建产物、跳过编译：
+
+```powershell
+dotnet build -c Release
+dotnet pack -c Release -o ./nupkgs --no-build
+```
+
+## 2. 发布所有 NuGet 包
+
+```powershell
+Get-ChildItem ./nupkgs/*.nupkg | ForEach-Object {
+    dotnet nuget push $_.FullName --source tonggao --skip-duplicate
+}
+```
+
+说明：
+
+- `--source tonggao`：使用已配置的源名称
+- `--skip-duplicate`：同名同版本已存在则跳过，适合重复发布 / CI
+
+排除符号包（若只需推主包）：
+
+```powershell
+Get-ChildItem ./nupkgs/*.nupkg |
+  Where-Object { $_.Name -notlike '*.symbols.nupkg' } |
+  ForEach-Object {
+    dotnet nuget push $_.FullName --source tonggao --skip-duplicate
+  }
+```
+
+源需要 API Key 时：
+
+```powershell
+Get-ChildItem ./nupkgs/*.nupkg | ForEach-Object {
+    dotnet nuget push $_.FullName `
+      --source tonggao `
+      --api-key $env:NUGET_API_KEY `
+      --skip-duplicate
+}
+```
+
+## 3. 一条流程：打包并发布
+
+```powershell
+dotnet pack -c Release -o ./nupkgs
+
+Get-ChildItem ./nupkgs/*.nupkg | ForEach-Object {
+    dotnet nuget push $_.FullName --source tonggao --skip-duplicate
+}
+```
+
+清理后重新打包再推送：
+
+```powershell
+Remove-Item ./nupkgs -Recurse -Force -ErrorAction SilentlyContinue
+dotnet pack -c Release -o ./nupkgs
+Get-ChildItem ./nupkgs/*.nupkg | ForEach-Object {
+    dotnet nuget push $_.FullName --source tonggao --skip-duplicate
+}
+```
+
+## 常用排查
+
+| 问题 | 处理 |
+| --- | --- |
+| 找不到源 `tonggao` | `dotnet nuget list source`，确认名称；或重新 `add source` |
+| 401 / 403 | 检查账号、PAT、API Key；确认源是否要求 `--api-key` |
+| 没有生成 `.nupkg` | 确认项目可打包（类库默认可以；可执行项目可能需设 `IsPackable`） |
+| 版本冲突 | 加 `--skip-duplicate`，或提高 `PackageVersion` 后重打 |
+| 还原失败 | `dotnet nuget locals http-cache --clear` 后重试 `dotnet restore` |
+
+查看源与本地缓存：
+
+```powershell
+dotnet nuget list source
+dotnet nuget locals all --list
+dotnet nuget locals http-cache --clear
+```
