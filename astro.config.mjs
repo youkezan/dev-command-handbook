@@ -9,7 +9,7 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: '开发者命令手册',
-			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/withastro/starlight' }],
+			social: [{ icon: 'github', label: 'YOUKEZAN', href: 'https://github.com/youkezan/dev-command-handbook' }],
 			sidebar: [
 				{
 					label: 'Guides',
