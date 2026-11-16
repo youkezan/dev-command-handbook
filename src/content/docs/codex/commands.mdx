@@ -1,0 +1,183 @@
+---
+title: Codex 命令
+description: OpenAI Codex CLI 常用命令速查，含附加多个目录（--add-dir）与持久配置。
+---
+
+OpenAI [Codex CLI](https://github.com/openai/codex) 常用命令。默认工作区是启动时的当前目录；跨仓库 / 多目录时用 `--add-dir` 额外授权可写路径。
+
+## 前置条件
+
+确认已安装并可运行：
+
+```powershell
+codex --version
+codex --help
+```
+
+未安装时按官方文档安装后再继续。
+
+## 1. 启动交互会话
+
+在项目根目录启动 TUI：
+
+```powershell
+codex
+```
+
+指定工作目录（不必先 `cd`）：
+
+```powershell
+codex --cd C:\liyong\repos\github\youkezan\dev-command-handbook
+# 简写：
+codex -C C:\liyong\repos\github\youkezan\dev-command-handbook
+```
+
+启动时带上首条提示：
+
+```powershell
+codex "总结这个仓库的目录结构"
+```
+
+指定模型：
+
+```powershell
+codex -m gpt-5.4 "帮我看一下这个报错"
+```
+
+## 2. 附加多个目录（`--add-dir`）
+
+`--add-dir` 在主工作区之外，再授予其他目录的写权限（沙箱内可读可写）。**可重复多次**，每个目录写一次。
+
+```powershell
+# 主目录：api；额外挂载 frontend、shared
+codex --cd C:\code\acme-api `
+  --add-dir C:\code\acme-frontend `
+  --add-dir C:\code\acme-shared `
+  "同步改 API、前端和共享类型"
+```
+
+相对路径也可以（相对你执行命令时的 shell 当前目录）：
+
+```powershell
+cd C:\code\acme-api
+codex --add-dir ..\acme-frontend --add-dir ..\acme-shared
+```
+
+说明：
+
+| 点 | 说明 |
+| --- | --- |
+| 主工作区 | 仍是 `--cd` / 当前目录；`cwd` **不会**变成 `--add-dir` 的路径 |
+| 多次附加 | 每个目录单独一个 `--add-dir` |
+| 路径要求 | 目录需已存在；不存在的路径会被忽略 |
+| 权限范围 | 尽量只挂需要的目录，不要挂整盘或系统目录 |
+
+非交互（`exec`）同样支持：
+
+```powershell
+codex exec `
+  --cd C:\code\acme-api `
+  --add-dir C:\code\acme-frontend `
+  --add-dir C:\code\acme-shared `
+  --sandbox workspace-write `
+  "根据最新 OpenAPI 更新前端客户端 stub"
+```
+
+### 持久配置：`writable_roots`
+
+经常跨同一批目录时，可写到 `~/.codex/config.toml`（Windows 多为 `%USERPROFILE%\.codex\config.toml`），避免每次敲 `--add-dir`：
+
+```toml
+sandbox_mode = "workspace-write"
+
+[sandbox_workspace_write]
+writable_roots = [
+  "C:/code/acme-frontend",
+  "C:/code/acme-shared",
+]
+```
+
+说明：
+
+- 使用**绝对路径**
+- 会与当前工作目录合并：列表中的目录在每次会话中都可写
+- 临时多挂目录仍优先用启动参数 `--add-dir`
+
+## 3. 沙箱与审批
+
+```powershell
+# 工作区内可写（常用）
+codex --sandbox workspace-write
+
+# 只读
+codex --sandbox read-only
+
+# 控制是否停下来等人批准命令
+codex -a on-request
+codex -a never
+```
+
+需要跨目录改代码时，优先：
+
+```powershell
+codex --sandbox workspace-write --add-dir <其他目录>
+```
+
+而不是直接 `--yolo` / `danger-full-access`（除非环境已由外部加固）。
+
+## 4. 非交互执行 `codex exec`
+
+适合脚本 / CI：
+
+```powershell
+codex exec "运行测试并修复失败用例"
+codex e "同上，短别名"
+```
+
+从 stdin 读提示：
+
+```powershell
+Get-Content .\prompt.txt | codex exec -
+```
+
+恢复最近一次 exec 会话：
+
+```powershell
+codex exec resume --last
+```
+
+## 5. 其他常用参数
+
+| 参数 | 说明 |
+| --- | --- |
+| `--cd` / `-C` | 设置 agent 工作目录 |
+| `--add-dir` | 额外可写目录，可重复 |
+| `-m` / `--model` | 覆盖默认模型 |
+| `-i` / `--image` | 附加图片到首条提示（可逗号分隔或重复） |
+| `--search` | 开启实时网页搜索 |
+| `--profile` / `-p` | 叠加配置 profile |
+| `--worktree` | 在新的托管 Git worktree 中启动 |
+| `--oss` | 使用本地开源模型提供方（如 Ollama / LM Studio） |
+
+```powershell
+codex -i .\screenshot.png "根据截图修 UI"
+codex --search "查一下最新 NuGet 推送参数"
+codex --worktree "在独立 worktree 里试一版重构"
+```
+
+## 常用排查
+
+| 问题 | 处理 |
+| --- | --- |
+| 改不了另一个仓库的文件 | 启动时加 `--add-dir <路径>`，或配置 `writable_roots` |
+| `--add-dir` 似乎无效 | 确认路径存在且为目录；检查 Codex 版本是否已支持该参数 |
+| 沙箱拦写 | 用 `--sandbox workspace-write`，并确保目标在主目录或 `--add-dir` / `writable_roots` 内 |
+| 跨仓改完看不到 diff | TUI diff 可能只显示主 `cwd` 仓；到各仓自行 `git status` / `git diff` |
+| 多仓 `AGENTS.md` 太大 | 合并说明有大小上限，精简各仓说明或调高相关配置 |
+
+查看帮助与会话相关命令：
+
+```powershell
+codex --help
+codex exec --help
+```

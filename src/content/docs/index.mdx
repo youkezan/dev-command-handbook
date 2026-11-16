@@ -1,40 +1,40 @@
 ---
-title: Welcome to Starlight
-description: Get started building your docs site with Starlight.
-template: splash # Remove or comment out this line to display the site sidebar on this page.
+title: 开发者命令手册
+description: 日常开发常用命令速查手册，覆盖 .NET、NuGet 等实操命令，持续补充中。
+template: splash
 hero:
-  tagline: Congrats on setting up a new Starlight project!
+  tagline: 把常用命令收拢一处，复制即用，少查少记。
   image:
     file: ../../assets/houston.webp
   actions:
-    - text: Example Guide
-      link: /guides/example/
+    - text: 开始查阅
+      link: /dotnet/nuget/
       icon: right-arrow
-    - text: Read the Starlight docs
-      link: https://starlight.astro.build
+    - text: GitHub
+      link: https://github.com/youkezan/dev-command-handbook
       icon: external
       variant: minimal
 ---
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-## Next steps
+## 手册里有什么
+
+面向日常开发场景的命令速查：可复制、带说明、附常见排查。
 
 <CardGrid stagger>
-	<Card title="Update content" icon="pencil">
-		Edit `src/content/docs/index.mdx` to see this page change.
+	<Card title="NET 命令" icon="rocket">
+		NuGet 打包、推送到私有源、源管理与常见问题排查。
+		[查看 NuGet 命令 →](/dotnet/nuget/)
 	</Card>
-	<Card title="Change page layout" icon="document">
-		Delete `template: splash` in `src/content/docs/index.mdx` to display a
-		sidebar on this page.
+	<Card title="持续补充" icon="add-document">
+		后续将陆续加入 Git、Docker、数据库等常用命令页。
 	</Card>
-	<Card title="Add new content" icon="add-document">
-		Add Markdown or MDX files to `src/content/docs` to create new pages.
+	<Card title="怎么用" icon="open-book">
+		按侧边栏进入对应主题，复制命令到终端即可；参数说明与排错表在同页。
 	</Card>
-	<Card title="Configure your site" icon="setting">
-		Edit your `sidebar` and other config in `astro.config.mjs`.
-	</Card>
-	<Card title="Read the docs" icon="open-book">
-		Learn more in [the Starlight Docs](https://starlight.astro.build/).
+	<Card title="参与贡献" icon="github">
+		发现缺漏或想补充命令，欢迎在
+		[仓库](https://github.com/youkezan/dev-command-handbook) 提 Issue 或 PR。
 	</Card>
 </CardGrid>
