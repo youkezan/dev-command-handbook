@@ -1,0 +1,154 @@
+---
+title: Git Worktree 分区分支
+description: 用 Git Worktree 把 release 放到独立工作区，与 master / 开发分支隔离，并完成推送与发布合并。
+---
+
+使用 **Git Worktree**，为 `release` 建独立工作区，与当前开发分支（如 `master` / `feature/*`）物理隔离：同一仓库、两套目录，互不抢分支检出。
+
+推荐模式：**开发工作区 + Release 发布工作区**。日常开发在原目录；合并、生产迁移、打 Tag、发布部署在 release 目录。
+
+## 前置说明
+
+- 在**开发工作区根目录**（已是 Git 仓库）执行 `git worktree add`
+- **同一个本地分支不能同时在两个 Worktree 中检出**
+- 下文示例仓库名：`tonggao-event-data-center-api`；按实际路径替换
+
+## 1. 创建 release 工作区
+
+三种情况**选一种**执行。
+
+### 本地已有 `release` 分支
+
+```powershell
+git worktree add ../tonggao-event-data-center-api-release release
+```
+
+### 本地没有、远程有 `release`
+
+```powershell
+git fetch origin
+git worktree add -b release ../tonggao-event-data-center-api-release origin/release
+```
+
+### 本地和远程都没有 `release`
+
+基于当前开发基线新建（示例从 `master`；也可换成 `feature/liyong-202611` 等）：
+
+```powershell
+git worktree add -b release ../tonggao-event-data-center-api-release master
+```
+
+从指定功能分支创建 release（创建成功后，本地 `release` 会指向该分支当前提交）：
+
+```powershell
+git worktree add -b release ../tonggao-event-data-center-api-release feature/liyong-202611
+```
+
+## 2. 目录结构
+
+创建成功后大致如下：
+
+```
+C:\tonggao\repos\aliyun\tonggao-event-data-center\
+│
+├── tonggao-event-data-center-api\
+│   └── master / feature 分支（开发工作区）
+│
+└── tonggao-event-data-center-api-release\
+    └── release 分支（发布工作区）
+```
+
+两个目录共享同一套 `.git` 对象；改一个仓里的提交，另一个 Worktree 里也能看到（各自检出的分支不同）。
+
+## 3. 查看所有工作区
+
+在任一工作区执行：
+
+```powershell
+git worktree list
+```
+
+示例输出含义：路径 + 当前提交 + 检出分支。
+
+## 4. 进入 release 工作区
+
+```powershell
+cd ../tonggao-event-data-center-api-release
+git status
+git branch -vv
+```
+
+之后分工：
+
+| 工作区 | 用途 |
+| --- | --- |
+| 开发目录（原仓库） | 日常开发、`feature/*` |
+| `*-release` 目录 | 合并发布代码、生产迁移、打 Tag、部署 |
+
+## 5. 推送 release 到远程
+
+若刚在本地新建了 `release`（尚未推送），在 **release 工作区**执行：
+
+```powershell
+cd ../tonggao-event-data-center-api-release
+git push -u origin release
+```
+
+确认上游：
+
+```powershell
+git branch -vv
+git status
+```
+
+## 6. 后续发布流程
+
+当功能分支（如 `feature/liyong-202611`）有新代码要发布时，在 **release 工作区**：
+
+```powershell
+cd ../tonggao-event-data-center-api-release
+git fetch origin
+git merge origin/feature/liyong-202611
+git push origin release
+```
+
+需要 Tag 时仍在 release 工作区：
+
+```powershell
+git tag -a v1.2.3 -m "release 1.2.3"
+git push origin v1.2.3
+```
+
+## 7. 常用维护命令
+
+```powershell
+git worktree list
+git worktree prune              # 清理已删除目录的登记信息
+```
+
+删除 release 工作区（先离开该目录）：
+
+```powershell
+# 在开发工作区执行
+git worktree remove ../tonggao-event-data-center-api-release
+# 或目录已手动删掉后：
+git worktree prune
+```
+
+删除本地 `release` 分支前，须确保没有 Worktree 仍检出它。
+
+## 常用排查
+
+| 问题 | 处理 |
+| --- | --- |
+| `is already checked out` | 该分支已在另一个 Worktree；换分支名，或先 `worktree remove` / 改那边检出 |
+| 路径已存在 | 换目标目录名，或删掉空目录后再 `worktree add` |
+| 远程没有 release | 先本地 `worktree add -b release ...`，再 `git push -u origin release` |
+| merge 冲突 | 在 **release 工作区**解决 → `git add` → `git commit`（或 `merge --continue`）后再 push |
+| 两个目录改乱了 | `git worktree list` 确认各自检出分支；开发只在原目录，发布只在 `*-release` |
+
+## 推荐约定
+
+- 同高项目统一：**开发工作区 + `*-release` 发布工作区**
+- `release` 专用于合并、迁移、Tag、发布；日常开发不在 release 目录改业务代码
+- 首次建完若只创建了本地分支，记得 `git push -u origin release`

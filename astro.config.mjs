@@ -9,6 +9,11 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "开发者命令手册",
+      favicon: "/favicon.png",
+      logo: {
+        src: "./src/assets/logo.png",
+        alt: "开发者命令手册",
+      },
       social: [
         {
           icon: "github",
