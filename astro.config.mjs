@@ -36,6 +36,10 @@ export default defineConfig({
           label: "CODEX 相关",
           items: [{ autogenerate: { directory: "codex" } }],
         },
+        {
+          label: "GIT 相关",
+          items: [{ autogenerate: { directory: "git" } }],
+        },
       ],
     }),
   ],

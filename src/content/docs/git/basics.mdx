@@ -1,0 +1,436 @@
+---
+title: Git 基础命令
+description: 日常开发常用的 Git 命令速查：初始化、克隆、提交、分支、远程、撤销与跟踪。
+---
+
+日常开发最常用的 Git 命令。在仓库根目录执行；需要远程时把 `<remote>` / `<branch>` 换成实际名称。
+
+## 前置条件
+
+```powershell
+git --version
+git config --global user.name
+git config --global user.email
+```
+
+首次使用先配置身份（全局）：
+
+```powershell
+git config --global user.name "Your Name"
+git config --global user.email "you@example.com"
+```
+
+查看当前仓库配置：
+
+```powershell
+git config --list --local
+git config --list --show-origin
+```
+
+## 1. 创建与克隆
+
+初始化本地仓库：
+
+```powershell
+git init
+```
+
+克隆远程仓库：
+
+```powershell
+git clone https://github.com/org/repo.git
+git clone https://github.com/org/repo.git my-folder
+git clone -b develop https://github.com/org/repo.git
+```
+
+## 2. 查看状态与差异
+
+```powershell
+git status
+git status -sb          # 简洁分支 + 状态
+git diff                # 工作区 vs 暂存区
+git diff --staged       # 暂存区 vs 最近一次提交
+git diff HEAD           # 工作区+暂存区 vs HEAD
+git log --oneline -n 20
+git log --oneline --graph --decorate -n 20
+```
+
+## 3. 暂存与提交
+
+```powershell
+git add .
+git add src/app.ts
+git add -p              # 交互式挑选 hunk
+git restore --staged .  # 取消暂存（保留改动）
+```
+
+提交：
+
+```powershell
+git commit -m "feat: add login page"
+git commit --amend --no-edit          # 改最近一次提交内容，消息不变
+git commit --amend -m "新的提交说明"  # 改消息（未推送时）
+```
+
+说明：
+
+- `--amend` 只在**未推送**或确认可改写历史时使用
+- 已推送的提交改写后需要 force push，协作分支慎用
+
+## 4. 分支
+
+```powershell
+git branch                    # 本地分支
+git branch -a                 # 含远程跟踪分支
+git branch feature/login      # 新建
+git switch feature/login      # 切换
+git switch -c feature/login   # 新建并切换
+git branch -d feature/login   # 删除已合并分支
+git branch -D feature/login   # 强制删除
+```
+
+基于远程分支开本地分支：
+
+```powershell
+git fetch origin
+git switch -c feature/login origin/feature/login
+```
+
+## 5. 远程同步
+
+查看远程：
+
+```powershell
+git remote -v
+git remote add origin https://github.com/org/repo.git
+```
+
+拉取 / 推送：
+
+```powershell
+git fetch origin
+git pull                      # 当前分支跟踪的远程分支
+git pull --rebase origin main
+git push -u origin HEAD       # 首次推送并设置上游
+git push
+git push origin --delete feature/login
+```
+
+查看跟踪关系：
+
+```powershell
+git branch -vv
+```
+
+## 6. 合并与变基
+
+```powershell
+git switch main
+git merge feature/login
+git merge --abort             # 冲突时放弃本次合并
+```
+
+变基（把当前分支接到目标分支之后）：
+
+```powershell
+git switch feature/login
+git rebase main
+git rebase --continue
+git rebase --abort
+```
+
+说明：
+
+- 共享分支优先 `merge`；个人功能分支可用 `rebase` 保持线性历史
+- 已推送的分支 rebase 后需 `git push --force-with-lease`
+
+## 7. 撤销与回退
+
+按「改动在哪一层」选命令：工作区 → 暂存区 → 提交历史。
+
+### 工作区 / 暂存区
+
+丢弃**未暂存**的文件改动：
+
+```powershell
+git restore src/app.ts
+git restore .
+```
+
+取消暂存但保留文件内容：
+
+```powershell
+git restore --staged src/app.ts
+git restore --staged .
+```
+
+既取消暂存又丢掉工作区改动（危险）：
+
+```powershell
+git restore --source=HEAD --staged --worktree src/app.ts
+# 或整仓：
+git restore --source=HEAD --staged --worktree .
+```
+
+把某文件恢复成某次提交时的内容（只改工作区）：
+
+```powershell
+git restore --source=<commit-sha> -- src/app.ts
+git restore --source=HEAD~2 -- src/app.ts
+```
+
+删除未跟踪文件 / 目录（先预览）：
+
+```powershell
+git clean -nd
+git clean -fd
+git clean -fdx              # 连 ignored 文件一起删，慎用
+```
+
+### 撤销提交（未推送优先）
+
+| 命令 | 提交 | 暂存区 | 工作区 |
+| --- | --- | --- | --- |
+| `git reset --soft HEAD~1` | 撤销 | 保留改动 | 保留 |
+| `git reset HEAD~1`（mixed） | 撤销 | 清空 | 保留改动 |
+| `git reset --hard HEAD~1` | 撤销 | 清空 | **丢弃** |
+
+```powershell
+git reset --soft HEAD~1     # 改完想重写提交说明 / 再拆分提交
+git reset HEAD~1            # 提交撤掉，改动留在工作区
+git reset --hard HEAD~1     # 提交和工作区改动都不要（不可恢复）
+git reset --hard <commit>   # 回到指定提交
+```
+
+只改最近一次提交内容或说明（未推送）：
+
+```powershell
+git add .
+git commit --amend --no-edit
+git commit --amend -m "更正提交说明"
+```
+
+### 已推送历史：用 revert
+
+不改写历史，新增一次「反向」提交：
+
+```powershell
+git revert HEAD
+git revert <commit-sha>
+git revert <old>..<new>     # 区间（不含 old）
+git revert -n <commit-sha>  # 只应用反向改动，不自动提交
+git revert --abort
+```
+
+### 找回误删的提交：`reflog`
+
+```powershell
+git reflog
+git reflog -n 30
+git reset --hard HEAD@{2}           # 回到 reflog 里某次位置
+git reset --hard <reflog-sha>
+git branch recover/<name> <sha>     # 用分支钉住，避免再丢
+```
+
+说明：
+
+- `reflog` 是本地记录，默认约保留 90 天
+- 已推送分支改写历史后，协作时用 `git push --force-with-lease`
+
+## 8. 跟踪
+
+### 文件跟踪
+
+开始跟踪新文件：
+
+```powershell
+git add src/new.ts
+git add src/
+git status
+```
+
+停止跟踪但**保留本地文件**（从仓库移除索引）：
+
+```powershell
+git rm --cached secret.env
+git rm --cached -r build/
+git commit -m "chore: stop tracking build output"
+```
+
+停止跟踪并**删除工作区文件**：
+
+```powershell
+git rm obsolete.ts
+git rm -r old-folder/
+```
+
+重命名 / 移动（保持历史）：
+
+```powershell
+git mv src/old.ts src/new.ts
+```
+
+忽略规则（`.gitignore`）：
+
+```powershell
+# 写入规则后，若文件已被跟踪，需先 rm --cached
+echo "dist/" >> .gitignore
+git rm -r --cached dist/
+git add .gitignore
+git commit -m "chore: ignore dist"
+```
+
+### .NET / Visual Studio：取消跟踪构建产物
+
+`.vs`、`bin`、`obj` 若已被提交进仓库，先写入 `.gitignore`，再从索引移除（本地文件保留）：
+
+```gitignore
+.vs/
+**/bin/
+**/obj/
+```
+
+取消跟踪 `.vs`（目录不存在也不报错）：
+
+```powershell
+git rm -r --cached --ignore-unmatch .vs
+```
+
+批量取消跟踪所有已入库的 `bin/`、`obj/`：
+
+```powershell
+git ls-files | Where-Object {
+    $_ -match '(^|/)(bin|obj)/'
+} | ForEach-Object {
+    git rm --cached -- $_
+}
+```
+
+然后提交：
+
+```powershell
+git add .gitignore
+git status
+git commit -m "chore: stop tracking .vs, bin, and obj"
+```
+
+说明：
+
+- `--cached`：只改索引，不删磁盘上的文件
+- `--ignore-unmatch`：路径当前未被跟踪时不失败，适合脚本复用
+- 推送后，其他人 `pull` 不会删本地 `bin`/`obj`，但这些路径会从仓库历史的**后续提交**中消失；已在旧提交里的仍可用历史检出
+
+查看文件是否被忽略、为何被忽略：
+
+```powershell
+git check-ignore -v dist/app.js
+git check-ignore -v .vs/
+git ls-files                    # 已跟踪文件列表
+git ls-files --others --exclude-standard   # 未跟踪且未被忽略
+```
+
+### 分支上游跟踪
+
+查看本地分支与远程跟踪关系：
+
+```powershell
+git branch -vv
+git status -sb
+git rev-parse --abbrev-ref --symbolic-full-name '@{u}'
+```
+
+首次推送并设置上游：
+
+```powershell
+git push -u origin HEAD
+# 等同：
+git push --set-upstream origin feature/login
+```
+
+给已有本地分支设置 / 改上游：
+
+```powershell
+git branch -u origin/main
+git branch --set-upstream-to=origin/develop
+git switch feature/login
+git branch -u origin/feature/login
+```
+
+取消上游跟踪：
+
+```powershell
+git branch --unset-upstream
+```
+
+基于远程分支创建并跟踪：
+
+```powershell
+git fetch origin
+git switch -c feature/login --track origin/feature/login
+# 远程名与本地名相同时可简写：
+git switch --track origin/feature/login
+```
+
+拉取时指定远程分支（不改当前上游）：
+
+```powershell
+git pull origin main
+git fetch origin
+git merge origin/main
+```
+
+## 9. 暂存现场 `stash`
+
+```powershell
+git stash push -m "wip: login"
+git stash list
+git stash show -p stash@{0}
+git stash pop
+git stash apply stash@{0}
+git stash drop stash@{0}
+git stash clear
+```
+
+含未跟踪文件：
+
+```powershell
+git stash push -u -m "wip: include untracked"
+```
+
+## 10. 标签
+
+```powershell
+git tag
+git tag v1.0.0
+git tag -a v1.0.0 -m "release 1.0.0"
+git push origin v1.0.0
+git push origin --tags
+git tag -d v1.0.0
+git push origin --delete v1.0.0
+```
+
+## 常用排查
+
+| 问题 | 处理 |
+| --- | --- |
+| 推送被拒（非快进） | `git pull --rebase` 后再 `git push`；确认无人改写同一历史 |
+| 没有上游 / pull 报错 | `git branch -vv` 查看；`git push -u origin HEAD` 或 `git branch -u origin/<branch>` |
+| 误提交到错误分支 | `git reset --soft HEAD~1`，再 `switch` 到正确分支后重新 commit |
+| 想丢掉本地未提交改动 | `git restore .`；未跟踪文件用 `git clean -fd`（先 `git clean -nd` 预览） |
+| 误 `reset --hard` | `git reflog` 找到之前的 SHA，再 `git reset --hard <sha>` |
+| 文件已进仓库但想忽略 | 写入 `.gitignore` 后执行 `git rm --cached <path>` 再提交 |
+| `.vs` / `bin` / `obj` 已被跟踪 | 见上文「.NET / Visual Studio」：`rm --cached` + `ls-files` 批量清理 |
+| 合并冲突 | 改冲突文件 → `git add` → `git merge --continue` / `git rebase --continue` |
+| 远程地址不对 | `git remote set-url origin <新地址>` |
+| 忘了改 user / email | `git config user.email "..."` 后，未推送可用 `git commit --amend --reset-author --no-edit` |
+
+安全习惯：
+
+```powershell
+# 强制推送优先用 with-lease，避免覆盖他人新提交
+git push --force-with-lease
+
+# 删除未跟踪文件前先预览
+git clean -nd
+git clean -fd
+```
